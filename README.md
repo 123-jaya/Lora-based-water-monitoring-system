@@ -1,57 +1,78 @@
-# LoRa-Based Water Monitoring System
+# LoRa-Based Wireless Water Monitoring System
 
-## Overview
-This project implements a long-range wireless water monitoring system using LoRa technology.  
-The system monitors water levels in a tank and sump and automatically controls a motor based on predefined conditions.
+A group mini-project implementing a long-range wireless water level monitoring and automatic motor control system using ESP32 and RYLR890 LoRa modules.
 
-Unlike previous implementations using RF 433 MHz modules with encoder/decoder ICs and 555 timers, this project simplifies the architecture by implementing direct LoRa-to-LoRa point-to-point communication using RYLR890 modules.
 
----
 
-## Technologies Used
-- ESP32 (DevKit V1 - ESP32-WROOM-32)
+## 🚀 Overview
+
+This project replaces traditional RF + Encoder/Decoder + 555 Timer based water monitoring systems with a simplified LoRa-to-LoRa point-to-point communication architecture.
+
+The system monitors both tank and sump levels and automatically controls the motor based on real-time conditions.
+
+
+
+## 🔧 Technologies Used
+
+- ESP32 (DEVKIT V1 – ESP32-WROOM-32)
+- RYLR890 LoRa Module
 - JSN-SR04T Waterproof Ultrasonic Sensor
-- RYLR890 LoRa Modules(868/915 MHz ISM Band)
-- UART-based AT Command Communication
 - 5V Relay Module
 
----
 
-## System Architecture
-- 2 Transmitter Nodes (Tank & Sump)
-- 1 Receiver Node (Motor Control)
-- Point-to-point LoRa Communication
 
----
+## 📡 LoRa Communication
 
-## Working Logic
-Motor ON only when:
-- Tank = EMPTY
-- Sump = FULL
+- Frequency Band: 868 / 915 MHz ISM
+- Communication Type: Point-to-Point
+- Range: 
+  - 4–5 km (urban)
+  - Up to 10–15 km (line-of-sight)
+- Low power long-range transmission
+- UART-based AT command interface
 
-Motor OFF for all other combinations.
+Establishing reliable LoRa-to-LoRa communication required tuning baud rate, addressing, and message formatting to ensure stable transmission without packet loss.
 
----
 
-## Key Highlights
-- Long-range communication capability (km-scale in open environments)
-- Simplified hardware compared to traditional RF + encoder/decoder systems
-- Reduced circuit complexity
-- Reliable UART-based communication
-- Modular and scalable design
 
----
+## ⚙️ Motor Control Logic
 
-## Project Outcome
-The system successfully demonstrated:
-- Stable ultrasonic sensing
-- Reliable LoRa message transmission
-- Correct motor control logic execution
+The motor operates based on tank–sump conditions:
 
----
+| Tank | Sump | Motor |
+|------|------|--------|
+| TE   | SE   | OFF    |
+| TE   | SF   | ON     |
+| TF   | SE   | OFF    |
+| TF   | SF   | OFF    |
 
-## Future Scope
-- Cloud integration (IoT dashboard)
-- GSM alert system
-- Water usage analytics
-- Multi-node scalability
+Where:
+- TE = Tank Empty  
+- TF = Tank Full  
+- SE = Sump Empty  
+- SF = Sump Full  
+
+The receiver ESP32 evaluates both inputs before actuating the relay, preventing overflow and dry running.
+
+
+
+## 📊 Prototype Results
+
+- Stable ultrasonic measurement within operational range  
+- Reliable LoRa packet reception  
+- Correct motor switching for all logic cases  
+- Zero observed packet corruption during bench testing  
+
+
+
+## 🔮 Future Scope
+
+- Real-time cloud dashboard integration  
+- Multi-tank scalable architecture  
+- Industrial deployment using LoRaWAN  
+
+
+
+## 📌 Project Type
+
+Group Mini Project – Embedded Systems & Wireless Communication
