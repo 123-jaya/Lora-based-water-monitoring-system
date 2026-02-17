@@ -1,0 +1,98 @@
+// -------------------- ULTRASONIC SENSOR --------------------
+#define TRIG_PIN 5
+#define ECHO_PIN 18
+
+long duration;
+float raw_cm;
+float corrected_cm;
+
+// -------------------- LoRa UART --------------------
+#include <HardwareSerial.h>
+HardwareSerial LoRa(2);   // RYLR890 on UART2
+
+// ---------------------------------------------------
+// 1) GET RAW DISTANCE
+// ---------------------------------------------------
+float getDistanceRaw() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(5);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  if (duration == 0) return -1;
+
+  return (duration * 0.0343) / 2.0;
+}
+
+// ---------------------------------------------------
+// 2) SETUP
+// ---------------------------------------------------
+void setup() {
+
+  Serial.begin(115200);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  Serial.println("Tank TX @9600 Ready");
+
+  // LoRa (Tank transmitter)
+  LoRa.begin(9600, SERIAL_8N1, 16, 17); 
+  delay(1000);
+
+  LoRa.println("AT+ADDRESS=1");       // Tank
+  LoRa.println("AT+NETWORKID=5");
+  LoRa.println("AT+BAND=865000000");
+  LoRa.println("AT+DR=10");
+
+  Serial.println("LoRa Ready");
+}
+
+// ---------------------------------------------------
+// 3) SEND MESSAGE VIA LoRa
+// ---------------------------------------------------
+void sendLoRaMessage(String msg) {
+  String cmd = "AT+SEND=3," + String(msg.length()) + "," + msg;
+  LoRa.println(cmd);
+  Serial.println("Sent: " + msg);
+}
+
+// ---------------------------------------------------
+// 4) MAIN LOOP
+// ---------------------------------------------------
+void loop() {
+
+  raw_cm = getDistanceRaw();
+  if (raw_cm < 0) {
+    Serial.println("No echo received");
+    delay(500);
+    return;
+  }
+
+  corrected_cm = raw_cm - 4.91;
+  if (corrected_cm < 0) corrected_cm = 0;
+
+  Serial.print("Tank Distance = ");
+  Serial.print(corrected_cm);
+  Serial.println(" cm");
+
+  // ----------------- LOGIC -----------------
+  if (corrected_cm < 20) {
+    sendLoRaMessage("O");     // Overflow
+  }
+  else if (corrected_cm < 40) {
+    sendLoRaMessage("F");     // Full
+  }
+  else {
+    sendLoRaMessage("E");     // Empty
+  }
+
+  // LoRa responses (optional)
+  if (LoRa.available()) {
+    Serial.println("LoRa: " + LoRa.readStringUntil('\n'));
+  }
+
+  delay(1000);
+}

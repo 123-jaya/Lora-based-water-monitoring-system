@@ -1,0 +1,88 @@
+// -------------------- ULTRASONIC SENSOR --------------------
+#define TRIG_PIN 5
+#define ECHO_PIN 18
+
+long duration;
+float raw_cm;
+float corrected_cm;
+
+// -------------------- LoRa UART --------------------
+#include <HardwareSerial.h>
+HardwareSerial LoRa(2);
+
+// ---------------------------------------------------
+float getDistanceRaw() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(5);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH, 30000);
+  if (duration == 0) return -1;
+
+  return (duration * 0.0343) / 2.0;
+}
+
+// ---------------------------------------------------
+void setup() {
+  Serial.begin(115200);
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+
+  Serial.println("Sump TX @115200 Ready");
+
+  // LoRa (Sump transmitter)
+  LoRa.begin(115200, SERIAL_8N1, 16, 17);
+  delay(1000);
+
+  LoRa.println("AT+ADDRESS=2");      // Sump
+  LoRa.println("AT+NETWORKID=5");
+  LoRa.println("AT+BAND=865000000");
+  LoRa.println("AT+DR=10");
+
+  Serial.println("LoRa Ready");
+}
+
+// ---------------------------------------------------
+void sendLoRaMessage(String msg) {
+  String cmd = "AT+SEND=3," + String(msg.length()) + "," + msg;
+  LoRa.println(cmd);
+  Serial.println("Sent: " + msg);
+}
+
+// ---------------------------------------------------
+void loop() {
+
+  raw_cm = getDistanceRaw();
+  if (raw_cm < 0) {
+    Serial.println("No echo received");
+    delay(500);
+    return;
+  }
+
+  corrected_cm = raw_cm - 4.91;
+  if (corrected_cm < 0) corrected_cm = 0;
+
+  Serial.print("Sump Distance = ");
+  Serial.print(corrected_cm);
+  Serial.println(" cm");
+
+  // ----------------- LOGIC -----------------
+  if (corrected_cm < 20) {
+    sendLoRaMessage("SO");  // Sump Overflow
+  }
+  else if (corrected_cm < 40) {
+    sendLoRaMessage("SF");  // Sump Full
+  }
+  else {
+    sendLoRaMessage("SE");  // Sump Empty
+  }
+
+  if (LoRa.available()) {
+    Serial.println("LoRa: " + LoRa.readStringUntil('\n'));
+  }
+
+  delay(1000);
+}
