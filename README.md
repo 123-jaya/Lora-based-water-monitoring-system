@@ -76,3 +76,6 @@ The receiver ESP32 evaluates both inputs before actuating the relay, preventing 
 ## 📌 Project Type
 
 Group Mini Project – Embedded Systems & Wireless Communication
+
+
+Prototype Dashboard - https://cc-abl-water-monitoring-dashboard-1k9mtly07.vercel.app/
